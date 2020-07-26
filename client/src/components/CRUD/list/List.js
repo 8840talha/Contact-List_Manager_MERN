@@ -3,16 +3,85 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import "./list.css";
 import "antd/dist/antd.css";
-import { Row, Col } from "antd";
+import { Row, Col, Drawer } from "antd";
 import { Button } from "antd";
-import { Input } from "antd";
+import { Input, Space, Alert, Table, Popover } from "antd";
+import Drawers from "../../Drawer";
 
 const List = (props) => {
+  const [visible, setVisible] = useState(false);
+
+  const showDrawer = () => {
+    setVisible(true);
+  };
+
+  const onClose = () => {
+    setVisible(false);
+    // window.location.reload(false)
+  };
+  const [currentUserId, setId] = useState(null);
+  const handleUserId = (id) => {
+    setId(id);
+  };
+  // Content For popoveer
+  const content = (
+    <div>
+      <Button type="primary">
+        <Link
+          style={{ color: "#fff", textDecoration: "none" }}
+          to={`/edit/${currentUserId}`}
+        >
+          Edit Simple
+        </Link>
+      </Button>
+      <Button type="primary" onClick={showDrawer}>
+        Edit In Drawer
+      </Button>
+    </div>
+  );
+
+  const columns = [
+    {
+      title: "Name",
+      dataIndex: "name",
+      key: "name",
+      render: (text) => <a>{text}</a>,
+    },
+    {
+      title: "Contact",
+      dataIndex: "mobilenumber",
+      key: "mobilenumber",
+    },
+    {
+      title: "Action",
+      key: "action",
+      render: (text, record) => {
+        console.log(record);
+        console.log(text);
+        return (
+          <Space size="middle">
+            <Popover
+              content={content}
+              title="Choose Edit Option"
+              trigger="click"
+            >
+              <Button type="primary" onClick={() => handleUserId(record._id)}>
+                Edit
+              </Button>
+            </Popover>
+
+            <Button onClick={() => Delete(record._id)} type="danger">
+              Delete
+            </Button>
+          </Space>
+        );
+      },
+    },
+  ];
+
   const { Search } = Input;
-  const [contacts, setcontacts] = useState([]);
-
+  const [data, setdata] = useState([]);
   const [loading, setLoading] = useState(false);
-
   useEffect(() => {
     load();
   }, []);
@@ -23,11 +92,11 @@ const List = (props) => {
       .then((res) => {
         console.log(res.data);
 
-        setcontacts(res.data.contacts);
+        setdata(res.data.contacts);
         setLoading(false);
       })
       .catch((err) => {
-        alert("Some Error Occured Or network Issue");
+        <Alert message="Some Error Occured." type="error" />;
       });
   };
 
@@ -42,67 +111,41 @@ const List = (props) => {
       .catch((err) => alert("Some Error Occured Or network Issue"));
   };
 
-  //   Sorting by Lowest Price
+  //   Sorting by Name from ascend
   const SortAscending = () => {
-    var sortedcontactsAsc;
-    sortedcontactsAsc = [...contacts].sort((a, b) => {
+    var sorteddataAsc;
+    sorteddataAsc = [...data].sort((a, b) => {
       console.log(a);
       return a.name.localeCompare(b.name);
     });
-    console.log(sortedcontactsAsc);
-    return setcontacts(sortedcontactsAsc);
+    console.log(sorteddataAsc);
+    return setdata(sorteddataAsc);
   };
-  //   Sorting by Highest Price
+  //   Sorting by name from descend
   const SortDesscending = (event) => {
-    var sortedcontactsDsc;
-    sortedcontactsDsc = [...contacts].sort((a, b) => {
+    var sorteddataDsc;
+    sorteddataDsc = [...data].sort((a, b) => {
       return b.name.localeCompare(a.name);
     });
-    console.log(sortedcontactsDsc);
-    return setcontacts(sortedcontactsDsc);
+    console.log(sorteddataDsc);
+    return setdata(sorteddataDsc);
   };
   const [searchterm, setSearch] = useState("");
-  // Filtering contacts by search terms and maping into array and returning in ui
-  let result = contacts
-    .filter((contact) => {
-      if (searchterm == null) {
-        return contact;
-      } else if (
-        contact.name.toLowerCase().includes(searchterm.toLowerCase()) ||
-        contact.mobilenumber
-          .toString()
-          .toLowerCase()
-          .includes(searchterm.toString().toLowerCase())
-      ) {
-        return contact;
-      }
-    })
-    .map((contact) => {
-      return (
-        <Col className="paper zoom" xs={24} sm={12} md={6} lg={4}>
-          <h3 className="h3">Name:{contact.name}</h3>
-          <p style={{ textAlign: "center" }}>Contact</p>
-          <p className="p">{contact.mobilenumber}</p>
-          <div className="priceContainer">
-            <Button type="primary" size="small">
-              <Link
-                style={{ color: "#fff", textDecoration: "none" }}
-                to={`/edit/${contact._id}`}
-              >
-                Edit
-              </Link>
-            </Button>
-            <Button
-              onClick={() => Delete(contact._id)}
-              type="danger"
-              size="small"
-            >
-              Delete
-            </Button>
-          </div>
-        </Col>
-      );
-    });
+  // Filtering data by search terms and maping into array and returning in ui
+
+  let result = data.filter((contact) => {
+    if (searchterm == null) {
+      return contact;
+    } else if (
+      contact.name.toLowerCase().includes(searchterm.toLowerCase()) ||
+      contact.mobilenumber
+        .toString()
+        .toLowerCase()
+        .includes(searchterm.toString().toLowerCase())
+    ) {
+      return contact;
+    }
+  });
 
   return (
     <div>
@@ -140,9 +183,28 @@ const List = (props) => {
         {loading ? (
           <p>Loading...</p>
         ) : (
-          <Row className="resultContainer">{result}</Row>
+          // <Row className="resultContainer">{result}</Row>
+          <Row>
+            <Col lg={4}></Col>
+            <Col lg={16}>
+              <Table
+                style={{ border: "1px solid lightgray" }}
+                columns={columns}
+                dataSource={result}
+              />
+            </Col>
+            <Col lg={4}></Col>
+          </Row>
         )}
       </div>
+      {currentUserId ? (
+        <Drawers
+          id={currentUserId}
+          onClose={onClose}
+          showDrawer={showDrawer}
+          visible={visible}
+        />
+      ) : null}
     </div>
   );
 };
